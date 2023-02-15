@@ -23,23 +23,21 @@ if app.Environment.IsDevelopment() then
     app.UseSwagger()
     app.UseSwaggerUI() |> ignore
 
-app.MapFunEndpoints(endpoints "api" {
-    config (fun route -> route.WithName(""))
-
-    //GET "hi" (fun () -> "world")
-    
-    endpoints "user" {
-        get "{userId}" {
-            authorization
-            produces typeof<User> 200
-            config (fun r -> r.CacheOutput())
-            handle (fun (userId: int) -> { Id = userId; Name = "Foo" })
-        }
-        put "{userId}" {
-            authorization
-            handle (fun _ -> Results.Ok "Updated")
+app.MapFunEndpoints(
+    endpoints "api" {
+        get "hi" { handle (fun () -> "world") }
+        endpoints "user" {
+            get "{userId}" {
+                produces typeof<User> 200
+                config (fun r -> r.CacheOutput())
+                handle (fun (userId: int) -> { Id = userId; Name = "Foo" })
+            }
+            put "{userId}" {
+                authorization
+                handle (fun _ -> Results.Ok "Updated")
+            }
         }
     }
-})
+)
 
 app.Run()
