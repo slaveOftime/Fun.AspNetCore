@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "Fun.AspNetCore.Demo": {
+        "commandName": "Project",
+        "launchBrowser": true,
+        "launchUrl": "swagger/index.html",
+        "environmentVariables": {
+            "ASPNETCORE_ENVIRONMENT": "Development"
+        },
+        "applicationUrl": "https://localhost:51833;http://localhost:51834"
+    }
+  }
+}
