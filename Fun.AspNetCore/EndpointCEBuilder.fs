@@ -1,70 +1,195 @@
 ﻿namespace Fun.AspNetCore
 
 open System
+open Microsoft.OpenApi.Models
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Builder
-open Fun.AspNetCore.Internal
+open Microsoft.AspNetCore.Authorization
+open Microsoft.AspNetCore.RateLimiting
+open Microsoft.Extensions.DependencyInjection
+open Microsoft.AspNetCore.OutputCaching
 
 
-type EndpointCEBuilder(method: SupportedHttpMethod, pattern: string) =
-    
-    member inline _.Build([<InlineIfLambda>] build: BuildEndpoint, method, pattern, handler: Delegate) =
+type EndpointCEBuilder(methods: string list, pattern: string) =
+
+    static member val GetMethods = [ HttpMethods.Get ]
+    static member val PutMethods = [ HttpMethods.Put ]
+    static member val PostMethods = [ HttpMethods.Post ]
+    static member val DeleteMethods = [ HttpMethods.Delete ]
+    static member val PatchMethods = [ HttpMethods.Patch ]
+
+
+    member _.Methods = methods
+    member _.Pattern = pattern
+
+    member inline this.Build([<InlineIfLambda>] build: BuildEndpoint, handler: Delegate) =
         BuildRoute(fun group ->
-            build.Invoke(
-                match method with
-                | GET -> group.MapGet(pattern, handler)
-                | PUT -> group.MapPut(pattern, handler)
-                | POST -> group.MapPost(pattern, handler)
-                | DELETE -> group.MapDelete(pattern, handler)
-                | PATCH -> group.MapPatch(pattern, handler)
-            )
+            let route = group.MapMethods(this.Pattern, this.Methods, handler)
+            build.Invoke(route)
         )
 
 
-    member inline _.Run([<InlineIfLambda>] x: BuildRoute) = x
+    member inline _.Run([<InlineIfLambda>] fn: BuildRoute) = fn //BuildRoute(fun x -> fn.Invoke(x)
 
     member inline _.Yield(_: unit) = BuildEndpoint(fun x -> x)
-        
+
     member inline _.Delay([<InlineIfLambda>] fn: unit -> BuildEndpoint) = BuildEndpoint(fun x -> fn().Invoke x)
-    member inline _.Delay([<InlineIfLambda>] fn: unit -> BuildRoute) = BuildRoute(fun x -> fn().Invoke(x))
+    member inline _.Delay([<InlineIfLambda>] fn: unit -> BuildRoute) = BuildRoute(fun r -> fn().Invoke(r))
+
+    member inline _.Zero() = BuildEndpoint(fun x -> x)
 
 
-    [<CustomOperation "config">]
-    member inline _.config([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] fn: RouteHandlerBuilder -> RouteHandlerBuilder) =
-        BuildEndpoint(fun route -> build.Invoke(route) |> fn)
+    [<CustomOperation "set">]
+    member inline _.set([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] fn: RouteHandlerBuilder -> RouteHandlerBuilder) =
+        BuildEndpoint(fun route -> fn (build.Invoke(route)))
+
+
+    [<CustomOperation "name">]
+    member inline _.name([<InlineIfLambda>] build: BuildEndpoint, name: string) = BuildEndpoint(fun route -> build.Invoke(route).WithName(name))
+
+    [<CustomOperation "displayName">]
+    member inline _.displayName([<InlineIfLambda>] build: BuildEndpoint, name: string) =
+        BuildEndpoint(fun route -> build.Invoke(route).WithDisplayName(name))
+
+    [<CustomOperation "groupName">]
+    member inline _.groupName([<InlineIfLambda>] build: BuildEndpoint, name: string) =
+        BuildEndpoint(fun route -> build.Invoke(route).WithGroupName(name))
+
+    [<CustomOperation "description">]
+    member inline _.description([<InlineIfLambda>] build: BuildEndpoint, description: string) =
+        BuildEndpoint(fun route -> build.Invoke(route).WithDescription(description))
+
+    [<CustomOperation "summary">]
+    member inline _.summary([<InlineIfLambda>] build: BuildEndpoint, summary: string) =
+        BuildEndpoint(fun route -> build.Invoke(route).WithSummary(summary))
+
+    [<CustomOperation "tags">]
+    member inline _.tags([<InlineIfLambda>] build: BuildEndpoint, [<ParamArray>] tags: string[]) =
+        BuildEndpoint(fun route -> build.Invoke(route).WithTags(tags))
+
+
+    [<CustomOperation "metas">]
+    member inline _.metas([<InlineIfLambda>] build: BuildEndpoint, metas: obj[]) = BuildEndpoint(fun route -> build.Invoke(route).WithMetadata(metas))
 
 
     [<CustomOperation "produces">]
-    member inline _.produces([<InlineIfLambda>] build: BuildEndpoint, ty: Type, ?statusCode: int, ?contentType: string) =
-        BuildEndpoint(fun route ->
-            build.Invoke(route).Produces(defaultArg statusCode 200, responseType = ty, contentType = defaultArg contentType "application/json")
-        )
+    member inline _.produces([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] getType: unit -> Type, statusCode) =
+        BuildEndpoint(fun route -> build.Invoke(route).Produces(statusCode, responseType = getType (), contentType = "application/json"))
 
     [<CustomOperation "produces">]
-    member inline _.produces([<InlineIfLambda>] build: BuildEndpoint, statusCode: int, ?contentType: string) =
+    member inline _.produces([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] getType: unit -> Type, statusCode, contentType) =
+        BuildEndpoint(fun route -> build.Invoke(route).Produces(statusCode, responseType = getType (), contentType = contentType))
+
+    [<CustomOperation "produces">]
+    member inline _.produces([<InlineIfLambda>] build: BuildEndpoint, statusCode, contentType) =
+        BuildEndpoint(fun route -> build.Invoke(route).Produces(statusCode, contentType))
+
+    [<CustomOperation "producesProblem">]
+    member inline _.producesProblem([<InlineIfLambda>] build: BuildEndpoint, statusCode) =
+        BuildEndpoint(fun route -> build.Invoke(route).ProducesProblem(statusCode))
+
+    [<CustomOperation "producesProblem">]
+    member inline _.producesProblem([<InlineIfLambda>] build: BuildEndpoint, statusCode, contentType) =
+        BuildEndpoint(fun route -> build.Invoke(route).ProducesProblem(statusCode, contentType))
+
+    [<CustomOperation "producesValidationProblem">]
+    member inline _.producesValidationProblem([<InlineIfLambda>] build: BuildEndpoint) =
+        BuildEndpoint(fun route -> build.Invoke(route).ProducesValidationProblem())
+
+    [<CustomOperation "producesValidationProblem">]
+    member inline _.producesValidationProblem([<InlineIfLambda>] build: BuildEndpoint, statusCode) =
+        BuildEndpoint(fun route -> build.Invoke(route).ProducesValidationProblem(statusCode))
+
+    [<CustomOperation "producesValidationProblem">]
+    member inline _.producesValidationProblem([<InlineIfLambda>] build: BuildEndpoint, statusCode, contentType) =
+        BuildEndpoint(fun route -> build.Invoke(route).ProducesValidationProblem(statusCode, contentType))
+
+
+    [<CustomOperation "openApi">]
+    member inline _.openApi([<InlineIfLambda>] build: BuildEndpoint) = BuildEndpoint(fun route -> build.Invoke(route).WithOpenApi())
+
+    [<CustomOperation "openApi">]
+    member inline _.openApi([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] configOperation: OpenApiOperation -> unit) =
         BuildEndpoint(fun route ->
-            build.Invoke(route).Produces(statusCode, defaultArg contentType "application/json")
+            build
+                .Invoke(route)
+                .WithOpenApi(fun x ->
+                    configOperation x
+                    x
+                )
         )
+
+
+    [<CustomOperation "anonymous">]
+    member inline _.anonymous([<InlineIfLambda>] build: BuildEndpoint) = BuildEndpoint(fun route -> build.Invoke(route).AllowAnonymous())
 
     [<CustomOperation "authorization">]
-    member inline _.authorization([<InlineIfLambda>] build: BuildEndpoint) =
-        BuildEndpoint(fun route -> build.Invoke(route).RequireAuthorization())
+    member inline _.authorization([<InlineIfLambda>] build: BuildEndpoint) = BuildEndpoint(fun route -> build.Invoke(route).RequireAuthorization())
+
+    [<CustomOperation "authorization">]
+    member inline _.authorization([<InlineIfLambda>] build: BuildEndpoint, policyNames: string[]) =
+        BuildEndpoint(fun route -> build.Invoke(route).RequireAuthorization(policyNames))
+
+    [<CustomOperation "authorization">]
+    member inline _.authorization([<InlineIfLambda>] build: BuildEndpoint, policy: AuthorizationPolicy) =
+        BuildEndpoint(fun route -> build.Invoke(route).RequireAuthorization(policy))
+
+    [<CustomOperation "authorization">]
+    member inline _.authorization([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] configurePolicy: AuthorizationPolicyBuilder -> unit) =
+        BuildEndpoint(fun route -> build.Invoke(route).RequireAuthorization(fun x -> configurePolicy x))
+
+    [<CustomOperation "authorization">]
+    member inline _.authorization([<InlineIfLambda>] build: BuildEndpoint, [<ParamArray>] authorizeData: IAuthorizeData[]) =
+        BuildEndpoint(fun route -> build.Invoke(route).RequireAuthorization(authorizeData))
+
+
+    [<CustomOperation "rateLimiting">]
+    member inline _.rateLimiting([<InlineIfLambda>] build: BuildEndpoint, policy: IRateLimiterPolicy<_>) =
+        BuildEndpoint(fun route -> build.Invoke(route).RequireRateLimiting(policy))
+
+    [<CustomOperation "rateLimiting">]
+    member inline _.rateLimiting([<InlineIfLambda>] build: BuildEndpoint, policyName: string) =
+        BuildEndpoint(fun route -> build.Invoke(route).RequireRateLimiting(policyName))
+
+    [<CustomOperation "disableRateLimiting">]
+    member inline _.disableRateLimiting([<InlineIfLambda>] build: BuildEndpoint) =
+        BuildEndpoint(fun route -> build.Invoke(route).DisableRateLimiting())
+
+
+    [<CustomOperation "cacheOutput">]
+    member inline _.cacheOutput([<InlineIfLambda>] build: BuildEndpoint) = BuildEndpoint(fun route -> build.Invoke(route).CacheOutput())
+
+    [<CustomOperation "cacheOutput">]
+    member inline _.cacheOutput([<InlineIfLambda>] build: BuildEndpoint, policyName: string) =
+        BuildEndpoint(fun route -> build.Invoke(route).CacheOutput(policyName))
+
+    [<CustomOperation "cacheOutput">]
+    member inline _.cacheOutput([<InlineIfLambda>] build: BuildEndpoint, policy: IOutputCachePolicy) =
+        BuildEndpoint(fun route -> build.Invoke(route).CacheOutput(policy))
+
+    [<CustomOperation "cacheOutput">]
+    member inline _.cacheOutput([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] configurePolicy: OutputCachePolicyBuilder -> unit) =
+        BuildEndpoint(fun route -> build.Invoke(route).CacheOutput(fun x -> configurePolicy x))
 
 
     [<CustomOperation "handle">]
-    member this.handle(build: BuildEndpoint, handler: Func<_, _>) = this.Build(build, method, pattern, handler)
+    member inline this.handle([<InlineIfLambda>] build: BuildEndpoint, handler: Func<'T, _>) =
+        if typeof<'T> = typeof<unit> then
+            this.Build(build, Func<_>(fun () -> handler.Invoke(unbox<'T> ())))
+        else
+            this.Build(build, handler)
 
     [<CustomOperation "handle">]
-    member this.handle(build: BuildEndpoint, handler: Func<_, _, _>) = this.Build(build, method, pattern, handler)
+    member inline this.handle([<InlineIfLambda>] build: BuildEndpoint, handler: Func<_, _, _>) = this.Build(build, handler)
 
     [<CustomOperation "handle">]
-    member this.handle( build: BuildEndpoint, handler: Func<_, _, _, _>) = this.Build(build, method, pattern, handler)
+    member inline this.handle([<InlineIfLambda>] build: BuildEndpoint, handler: Func<_, _, _, _>) = this.Build(build, handler)
 
     [<CustomOperation "handle">]
-    member this.handle(build: BuildEndpoint, handler: Func<_, _, _, _, _>) = this.Build(build, method, pattern, handler)
+    member inline this.handle([<InlineIfLambda>] build: BuildEndpoint, handler: Func<_, _, _, _, _>) = this.Build(build, handler)
 
     [<CustomOperation "handle">]
-    member this.handle(build: BuildEndpoint, handler: Func<_, _, _, _, _, _>) = this.Build(build, method, pattern, handler)
+    member inline this.handle([<InlineIfLambda>] build: BuildEndpoint, handler: Func<_, _, _, _, _, _>) = this.Build(build, handler)
 
     [<CustomOperation "handle">]
-    member this.handle(build: BuildEndpoint, handler: Func<_, _, _, _, _, _, _>) = this.Build(build, method, pattern, handler)
+    member inline this.handle([<InlineIfLambda>] build: BuildEndpoint, handler: Func<_, _, _, _, _, _, _>) = this.Build(build, handler)

@@ -2,24 +2,24 @@
 
 open System.Runtime.CompilerServices
 open Microsoft.AspNetCore.Routing
-open Microsoft.AspNetCore.Builder
-open Fun.AspNetCore.Internal
 
 
 [<Extension>]
 type EndpointsExtensions =
 
     [<Extension>]
-    static member MapFunEndpoints(this: IEndpointRouteBuilder, build: BuildEndpoints) =  build.Invoke(this.MapGroup(""))
-        
+    static member inline MapFunEndpoints(this: IEndpointRouteBuilder, [<InlineIfLambda>] build: BuildGroup) = build.Invoke(this)
+
 
 [<AutoOpen>]
 module EndpointsDsl =
 
-    let inline get pattern = EndpointCEBuilder(GET, pattern)
-    let inline put pattern = EndpointCEBuilder(PUT, pattern)
-    let inline post pattern = EndpointCEBuilder(POST, pattern)
-    let inline delete pattern = EndpointCEBuilder(DELETE, pattern)
-    let inline patch pattern = EndpointCEBuilder(PATCH, pattern)
+    let inline typedef<'T> () = typeof<'T>
+
+    let inline get pattern = EndpointCEBuilder(EndpointCEBuilder.GetMethods, pattern)
+    let inline put pattern = EndpointCEBuilder(EndpointCEBuilder.PutMethods, pattern)
+    let inline post pattern = EndpointCEBuilder(EndpointCEBuilder.PostMethods, pattern)
+    let inline delete pattern = EndpointCEBuilder(EndpointCEBuilder.DeleteMethods, pattern)
+    let inline patch pattern = EndpointCEBuilder(EndpointCEBuilder.PatchMethods, pattern)
 
     let inline endpoints pattern = EndpointsCEBuilder pattern
