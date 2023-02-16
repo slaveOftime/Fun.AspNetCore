@@ -60,6 +60,7 @@ app.MapFunEndpoints(
 
 app.MapFunEndpoints(
     endpoints "view" {
+        // Integrate with Fun.Blazor
         get "blog-list" {
             div {
                 class' "blog-list my-5"
