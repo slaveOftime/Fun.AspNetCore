@@ -31,12 +31,23 @@ type EndpointCEBuilder(methods: string list, pattern: string) =
 
     member inline _.Run([<InlineIfLambda>] fn: BuildRoute) = fn //BuildRoute(fun x -> fn.Invoke(x)
 
-    member inline _.Yield(_: unit) = BuildEndpoint(fun x -> x)
-
-    member inline _.Delay([<InlineIfLambda>] fn: unit -> BuildEndpoint) = BuildEndpoint(fun x -> fn().Invoke x)
-    member inline _.Delay([<InlineIfLambda>] fn: unit -> BuildRoute) = BuildRoute(fun r -> fn().Invoke(r))
-
     member inline _.Zero() = BuildEndpoint(fun x -> x)
+
+
+    member inline _.Yield(_: unit) = BuildEndpoint(fun x -> x)
+    member inline _.Delay([<InlineIfLambda>] fn: unit -> BuildEndpoint) = BuildEndpoint(fun x -> fn().Invoke x)
+
+    member inline this.Yield(x: IResult) = BuildRoute(fun group -> group.MapMethods(this.Pattern, this.Methods, Func<_>(fun () -> x)))
+    member inline _.Delay([<InlineIfLambda>] fn: unit -> BuildRoute) = BuildRoute(fun r -> fn().Invoke(r))
+    member inline _.Combine([<InlineIfLambda>] buildEndpoint: BuildEndpoint, [<InlineIfLambda>] buildRoute: BuildRoute) =
+        BuildRoute(fun group ->
+            let route = buildRoute.Invoke(group)
+            buildEndpoint.Invoke(route) |> ignore
+            route
+        )
+
+
+    member inline this.For([<InlineIfLambda>] builder: BuildEndpoint, [<InlineIfLambda>] fn: unit -> BuildRoute) = this.Combine(builder, fn ())
 
 
     [<CustomOperation "set">]

@@ -1,4 +1,8 @@
-﻿#nowarn "0020"
+﻿module Fun.AspNetCore.Demo.Program
+
+open Microsoft.AspNetCore.Authentication.Cookies
+
+#nowarn "0020"
 
 open System
 open Microsoft.AspNetCore.Http
@@ -11,13 +15,15 @@ open Fun.AspNetCore
 
 type User = { Id: int; Name: string }
 
-
 let builder = WebApplication.CreateBuilder(Environment.GetCommandLineArgs())
+let services = builder.Services
 
-builder.Services.AddEndpointsApiExplorer()
-builder.Services.AddSwaggerGen()
-builder.Services.AddControllersWithViews()
-builder.Services.AddFunBlazorServer()
+services.AddEndpointsApiExplorer()
+services.AddSwaggerGen()
+services.AddControllersWithViews()
+services.AddFunBlazorServer()
+services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie()
+services.AddAuthorization()
 
 
 let app = builder.Build()
@@ -26,20 +32,23 @@ if app.Environment.IsDevelopment() then
     app.UseSwagger()
     app.UseSwaggerUI() |> ignore
 
-app.MapFunEndpoints(
+app.UseAuthentication()
+app.UseAuthorization()
+
+app.MapGroup(
     endpoints "api" {
         get "hi" {
             cacheOutput
-            handle (fun () -> "world")
+            Results.Ok "world"
         }
         endpoints "user" {
             authorization
             get "{userId}" {
                 produces typedef<User> 200
-                producesProblem 404
                 handle (fun (userId: int) -> { Id = userId; Name = "Foo" })
             }
             put "{userId}" {
+                producesProblem 404
                 // You can access all apis provided by AspNetCore by use set operation
                 set (fun route -> route.Accepts("application/json").WithName("foo"))
                 handle (fun () -> Results.Ok "Updated")
@@ -47,7 +56,7 @@ app.MapFunEndpoints(
         }
         endpoints "account" {
             anonymous
-            get "login" { handle (fun () -> "bar") }
+            get "login" { handle (fun () -> "logged in") }
         }
         endpoints "security" {
             authorization
@@ -58,7 +67,7 @@ app.MapFunEndpoints(
     }
 )
 
-app.MapFunEndpoints(
+app.MapGroup(
     endpoints "view" {
         // Integrate with Fun.Blazor
         get "blog-list" {
@@ -81,5 +90,7 @@ app.MapFunEndpoints(
         }
     }
 )
+
+app
 
 app.Run()
