@@ -2,7 +2,10 @@
 
 	<PropertyGroup>
 		<TargetFramework>net7.0</TargetFramework>
+		<IsPackable>true</IsPackable>
+		<OutputType>library</OutputType>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<ChangelogFile>CHANGELOG.md</ChangelogFile>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -14,6 +17,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.2" />
+		<PackageReference Condition="'$(Configuration)'=='RELEASE'" Include="Ionide.KeepAChangelog.Tasks" Version="0.1.8" PrivateAssets="all" />
 	</ItemGroup>
 
 </Project>

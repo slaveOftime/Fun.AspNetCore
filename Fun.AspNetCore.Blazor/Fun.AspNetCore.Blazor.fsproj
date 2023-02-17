@@ -2,7 +2,10 @@
 
 	<PropertyGroup>
 		<TargetFramework>net7.0</TargetFramework>
+		<IsPackable>true</IsPackable>
+		<OutputType>library</OutputType>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<ChangelogFile>CHANGELOG.md</ChangelogFile>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -12,6 +15,7 @@
 	<ItemGroup>
 		<PackageReference Include="Fun.Blazor" Version="3.0.0-beta007" />
 		<PackageReference Include="Fun.Blazor.Server" Version="3.0.0-beta002" />
+		<PackageReference Condition="'$(Configuration)'=='RELEASE'" Include="Ionide.KeepAChangelog.Tasks" Version="0.1.8" PrivateAssets="all" />
 	</ItemGroup>
 
 	<ItemGroup>
