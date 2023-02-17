@@ -8,7 +8,7 @@ open Microsoft.AspNetCore.Routing
 type EndpointsExtensions =
 
     [<Extension>]
-    static member inline MapGroup(this: IEndpointRouteBuilder, [<InlineIfLambda>] build: BuildGroup) = build.Invoke(this) |> ignore
+    static member inline MapGroup(this: IEndpointRouteBuilder, [<InlineIfLambda>] build: BuildGroup) = build.Invoke(this)
 
 
 [<AutoOpen>]

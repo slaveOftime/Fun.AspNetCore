@@ -179,8 +179,8 @@ type EndpointCEBuilder(methods: string list, pattern: string) =
         BuildEndpoint(fun route -> build.Invoke(route).CacheOutput(policy))
 
     [<CustomOperation "cacheOutput">]
-    member inline _.cacheOutput([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] configurePolicy: OutputCachePolicyBuilder -> unit) =
-        BuildEndpoint(fun route -> build.Invoke(route).CacheOutput(fun x -> configurePolicy x))
+    member inline _.cacheOutput([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] configurePolicy: OutputCachePolicyBuilder -> OutputCachePolicyBuilder) =
+        BuildEndpoint(fun route -> build.Invoke(route).CacheOutput(fun x -> configurePolicy x |> ignore))
 
 
     [<CustomOperation "handle">]

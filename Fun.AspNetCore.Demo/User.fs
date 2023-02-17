@@ -3,6 +3,7 @@
 open System
 
 
+[<CLIMutable>]
 type User = { Id: int; Name: string }
 
 

@@ -29,11 +29,12 @@ let ``Nested api should work`` () = task {
 [<Fact>]
 let ``Auth should work`` () = task {
     let! actual = client.GetAsync("/api/user/123")
-    Assert.Equal(HttpStatusCode.OK, actual.StatusCode)
-
-    use content = new StringContent("", Encoding.UTF8, "application/json")
-    let! actual = client.PutAsync("/api/user/123", content)
     Assert.Equal(HttpStatusCode.NotFound, actual.StatusCode)
+
+    use content = new StringContent("""{ "Id": 123, "Name": "foo" }""", Encoding.UTF8, "application/json")
+    let! result = client.PutAsync("/api/user/123", content)
+    let! actual = result.Content.ReadAsStringAsync()
+    Assert.Equal("Updated: 123 foo", actual)
 }
 
 [<Fact>]
@@ -42,5 +43,5 @@ let ``Fun Blazor integration should work`` () = task {
     Assert.Equal("""<div class="blog-list my-5"><a href="/view/blog/1">blog 1</a><a href="/view/blog/2">blog 2</a></div>""", actual)
 
     let! actual = client.GetStringAsync("/view/blog/1")
-    Assert.Equal("logged in", actual)
+    Assert.Equal("""<div><h2>Blog 1</h2><p>Please give me feedback if you want.</p></div>""", actual)
 }

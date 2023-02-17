@@ -1,5 +1,6 @@
 ﻿module Fun.AspNetCore.Demo.Endpoints
 
+open System
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Builder
 open Fun.Blazor
@@ -14,15 +15,15 @@ let apis =
         }
         endpoints "user" {
             get "{userId}" {
+                authorization
                 produces typedef<User> 200
+                producesProblem 404
                 handle UserApis.getUser
             }
             put "{userId}" {
-                authorization
-                producesProblem 404
                 // You can access all apis provided by AspNetCore by use set operation
                 set (fun route -> route.Accepts("application/json").WithName("foo"))
-                handle (fun () -> Results.Ok "Updated")
+                handle (fun (userId: int) (user: User) -> Results.Text $"Updated: {userId} {user.Name}")
             }
         }
         endpoints "account" {
@@ -41,6 +42,10 @@ let apis =
 let view =
     endpoints "view" {
         // Integrate with Fun.Blazor
+        get "time" {
+            cacheOutput (fun b -> b.Expire(TimeSpan.FromSeconds 5))
+            handle (fun () -> div { $"{DateTime.Now}" } |> Results.View)
+        }
         get "blog-list" {
             div {
                 class' "blog-list my-5"
@@ -54,9 +59,12 @@ let view =
             }
         }
         get "blog/{blogId}" {
-            view (fun (blogId: int) -> div {
-                h2 { $"Blog {blogId}" }
-                p { "Please give me feedback if you want." }
-            })
+            handle (fun (blogId: int) ->
+                div {
+                    h2 { $"Blog {blogId}" }
+                    p { "Please give me feedback if you want." }
+                }
+                |> Results.View
+            )
         }
     }

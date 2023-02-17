@@ -16,6 +16,7 @@ services.AddEndpointsApiExplorer()
 services.AddSwaggerGen()
 services.AddControllersWithViews()
 services.AddFunBlazorServer()
+services.AddOutputCache()
 services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie()
 services.AddAuthorization()
 
@@ -26,6 +27,7 @@ if app.Environment.IsDevelopment() then
     app.UseSwagger()
     app.UseSwaggerUI() |> ignore
 
+app.UseOutputCache()
 app.UseAuthentication()
 app.UseAuthorization()
 
