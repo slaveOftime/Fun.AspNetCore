@@ -6,6 +6,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<Compile Include="User.fs" />
+		<Compile Include="Endpoints.fs" />
 		<Compile Include="Program.fs" />
 	</ItemGroup>
 
