@@ -15,7 +15,6 @@ let services = builder.Services
 services.AddEndpointsApiExplorer()
 services.AddSwaggerGen()
 services.AddControllersWithViews()
-services.AddFunBlazorServer()
 services.AddOutputCache()
 services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie()
 services.AddAuthorization()

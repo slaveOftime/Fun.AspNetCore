@@ -19,10 +19,7 @@ type Results with
 type EndpointCEBuilder with
 
     member inline this.Yield([<InlineIfLambda>] node: NodeRenderFragment) =
-        BuildRoute(fun group ->
-            let route = group.MapMethods(this.Pattern, this.Methods, Func<_, _>(fun (ctx: HttpContext) -> ctx.WriteFunDom(node)))
-            route
-        )
+        BuildRoute(fun group -> group.MapMethods(this.Pattern, this.Methods, Func<_, _>(fun (ctx: HttpContext) -> ctx.WriteFunDom(node))))
 
 
 

@@ -14,6 +14,8 @@ type EndpointsExtensions =
 [<AutoOpen>]
 module EndpointsDsl =
 
+    /// Get the type from the generic type 'T.
+    /// The reason for not directly use typeof is because it will make the inline harder and reduce performance.
     let inline typedef<'T> () = typeof<'T>
 
     let inline get pattern = EndpointCEBuilder(EndpointCEBuilder.GetMethods, pattern)

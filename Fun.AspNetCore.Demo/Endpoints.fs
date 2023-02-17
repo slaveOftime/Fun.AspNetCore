@@ -44,7 +44,7 @@ let view =
         // Integrate with Fun.Blazor
         get "time" {
             cacheOutput (fun b -> b.Expire(TimeSpan.FromSeconds 5))
-            handle (fun () -> div { $"{DateTime.Now}" } |> Results.View)
+            div { $"{DateTime.Now}" }
         }
         get "blog-list" {
             div {
