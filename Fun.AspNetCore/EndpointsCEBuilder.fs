@@ -7,6 +7,7 @@ open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Routing
 open Microsoft.AspNetCore.Authorization
 open Microsoft.AspNetCore.RateLimiting
+open Fun.AspNetCore.Internal
 
 
 type EndpointsCEBuilder(pattern: string) =

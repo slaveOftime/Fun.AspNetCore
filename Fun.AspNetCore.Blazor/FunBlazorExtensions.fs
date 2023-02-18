@@ -6,6 +6,7 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Builder
 open Microsoft.Extensions.DependencyInjection
 open Fun.Blazor
+open Fun.AspNetCore.Internal
 
 
 type Results with

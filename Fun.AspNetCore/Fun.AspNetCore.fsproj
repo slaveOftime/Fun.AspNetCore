@@ -9,7 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="Core.fs" />
+		<Compile Include="Types.fs" />
 		<Compile Include="EndpointCEBuilder.fs" />
 		<Compile Include="EndpointsCEBuilder.fs" />
 		<Compile Include="EndpointsDsl.fs" />

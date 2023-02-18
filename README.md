@@ -105,3 +105,8 @@ app.MapGroup(
 )
 ...
 ```
+
+## TODO
+
+- More extensions
+- Tune inline for better performance and IL generation

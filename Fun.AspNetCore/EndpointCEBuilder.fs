@@ -8,6 +8,7 @@ open Microsoft.AspNetCore.Authorization
 open Microsoft.AspNetCore.RateLimiting
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.AspNetCore.OutputCaching
+open Fun.AspNetCore.Internal
 
 
 type EndpointCEBuilder(methods: string list, pattern: string) =
