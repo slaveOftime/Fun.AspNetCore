@@ -9,10 +9,7 @@ open Fun.AspNetCore
 
 let apis =
     endpoints "api" {
-        get "hi" {
-            cacheOutput
-            Results.Text "world"
-        }
+        get "hi" { Results.Text "world" }
         endpoints "user" {
             get "{userId}" {
                 authorization

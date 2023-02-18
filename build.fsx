@@ -1,9 +1,11 @@
-#r "nuget: Fun.Build, 0.3.2"
-#r "nuget: Fake.IO.FileSystem, 5.23.0"
+#r "nuget: Fun.Build, 0.3.4"
+#r "nuget: NBomber"
 
-open Fake.IO
-open Fake.IO.Globbing.Operators
+open System
+open System.Net.Http
 open Fun.Build
+open NBomber.FSharp
+open NBomber.Contracts
 
 
 let envCheckStage =
@@ -28,6 +30,36 @@ let lintStage =
     }
 
 let testStage = stage "Run unit tests" { run "dotnet test" }
+
+let benchmarkStage name (url: string) =
+    stage name {
+        paralle
+        stage "server" {
+            noStdRedirectForStep
+            run "dotnet run -c Release --no-build"
+        }
+        run (fun ctx -> async {
+            do! Async.Sleep 10_000
+
+            let httpClient = new HttpClient()
+            let result =
+                Scenario.create (
+                    name,
+                    fun _ -> task {
+                        let! response = httpClient.GetAsync(url)
+                        return Response.ok (statusCode = string response.StatusCode)
+                    }
+                )
+                |> Scenario.withoutWarmUp
+                |> Scenario.withLoadSimulations [ LoadSimulation.KeepConstant(10, during = TimeSpan.FromSeconds(120)) ]
+                |> NBomberRunner.registerScenario
+                |> NBomberRunner.run
+
+            ctx.SoftCancelStage()
+
+            return result |> Result.map ignore
+        })
+    }
 
 
 pipeline "deploy" {
@@ -66,5 +98,15 @@ pipeline "test" {
     runIfOnlySpecified
 }
 
+pipeline "benchmark" {
+    description "Compare normal minimal apis with apis build by Fun.AspNetCore"
+    noPrefixForStep
+    workingDir "Fun.AspNetCore.Demo"
+    stage "prepare" { run "dotnet build -c Release" }
+    benchmarkStage "NormalMinimal" "https://localhost:51833/normal/hi"
+    stage "pause" { run (Async.Sleep 10_000) }
+    benchmarkStage "Fun.AspNetCore" "https://localhost:51833/api/hi"
+    runIfOnlySpecified
+}
 
 tryPrintPipelineCommandHelp ()

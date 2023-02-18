@@ -29,7 +29,10 @@ type EndpointCEBuilder(methods: string list, pattern: string) =
         )
 
 
-    member inline _.Run([<InlineIfLambda>] fn: BuildRoute) = fn //BuildRoute(fun x -> fn.Invoke(x)
+    member inline _.Run([<InlineIfLambda>] fn: BuildRoute) = BuildRoute(fun x -> fn.Invoke(x))
+
+    member inline this.Run([<InlineIfLambda>] fn: BuildEndpoint) = this.Build(fn, Func<_>(fun () -> Results.Ok()))
+
 
     member inline _.Zero() = BuildEndpoint(fun x -> x)
 

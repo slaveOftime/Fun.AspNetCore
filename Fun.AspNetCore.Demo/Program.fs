@@ -1,6 +1,7 @@
 ﻿#nowarn "0020"
 
 open System
+open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Builder
 open Microsoft.Extensions.Hosting
 open Microsoft.AspNetCore.Authentication.Cookies
@@ -32,5 +33,7 @@ app.UseAuthorization()
 
 app.MapGroup(Endpoints.apis)
 app.MapGroup(Endpoints.view)
+
+app.MapGroup("normal").MapGet("hi", Func<_>(fun () -> Results.Text "world"))
 
 app.Run()

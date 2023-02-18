@@ -2,6 +2,23 @@
 
 This is a experimental project for provide a very thin layer on AspNetCore for fsharp developers who love CE syntax (❤).
 
+There is a convention for using it:
+
+```fsharp
+get "hi" {
+    // the settings like authorization, goes first
+
+    // handle should put in the last
+    handle (fun (v1: T1) (v2: T2) ... -> ...)
+    // The function argumentS should not be tuples
+    // You can use function which is defined in other places, but it must be defined as Func<_, _>(fun (v1: T1) (v2: T2) ... -> ...).
+    // Like: let getUser = Func<int, User>(fun userId -> { Id = userId; Name = "foo" })
+
+    // You can also yield IResult and NodeRenderFragment(for Fun.Blazor) without use handle, they are special
+}
+```
+
+
 ## With **Fun.AspNetCore** you can build minimal apis like:
 
 ```fsharp
@@ -14,10 +31,7 @@ let app = builder.Build()
 
 app.MapGroup(
     endpoints "api" {
-        get "hi" {
-            cacheOutput
-            Results.Text "world"
-        }
+        get "hi" { Results.Text "world" }
         // You can next endpoints
         endpoints "user" {
             get "{userId}" {
