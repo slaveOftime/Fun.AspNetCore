@@ -1,8 +1,26 @@
 ﻿# Fun.AspNetCore
 
-This is a experimental project for provide a very thin layer on AspNetCore for fsharp developers who love CE syntax (❤).
+This is a experimental project for provide a very thin layer on AspNetCore minimal api for fsharp developers who love CE syntax (❤).
 
 There is a convention for using it:
+
+**endpoints** is a group of endpoint, it can contain nested **endpoints** or get/put/post/delete/patch endpoints etc.
+
+```fsharp
+endpoints "api" {
+    // the settings like authorization, goes first
+    
+    // nested endpoints
+    endpoints "user" {
+        ...
+    }
+
+    // single endpoint
+    get "hi" { ... }
+}
+```
+
+For a single endpoint it also follow similar pattern
 
 ```fsharp
 get "hi" {
@@ -13,13 +31,14 @@ get "hi" {
     // The function argumentS should not be tuples
     // You can use function which is defined in other places, but it must be defined as Func<_, _>(fun (v1: T1) (v2: T2) ... -> ...).
     // Like: let getUser = Func<int, User>(fun userId -> { Id = userId; Name = "foo" })
+    // The different with csharp minimal api is: you can not add attribute to the argument because of fsharp limitation.
 
     // You can also yield IResult and NodeRenderFragment(for Fun.Blazor) without use handle, they are special
 }
 ```
 
 
-## With **Fun.AspNetCore** you can build minimal apis like:
+## Fun.AspNetCore example
 
 ```fsharp
 ...
@@ -32,7 +51,7 @@ let app = builder.Build()
 app.MapGroup(
     endpoints "api" {
         get "hi" { Results.Text "world" }
-        // You can next endpoints
+        // You can nest endpoints
         endpoints "user" {
             get "{userId}" {
                 authorization
@@ -61,14 +80,14 @@ app.MapGroup(
 ...
 ```
 
-## With **Fun.AspNetCore.Blazor** you can build minimal apis with Fun.Blazor like:
+## Fun.AspNetCore.Blazor example
 
 ```fsharp
 ...
 let builder = WebApplication.CreateBuilder(Environment.GetCommandLineArgs())
 let services = builder.Services
 ...
-services.AddControllersWithViews()
+services.AddControllersWithViews() // Will register some service for writing dom into response
 ...
 let app = builder.Build()
 ...
@@ -105,8 +124,3 @@ app.MapGroup(
 )
 ...
 ```
-
-## TODO
-
-- More extensions
-- Tune inline for better performance and IL generation
