@@ -1,6 +1,8 @@
-﻿# Fun.AspNetCore
+﻿# Fun.AspNetCore [![Nuget](https://img.shields.io/nuget/vpre/Fun.AspNetCore)](https://www.nuget.org/packages/Fun.AspNetCore)
 
 This is a experimental project for provide a very thin layer on AspNetCore minimal api for fsharp developers who love CE syntax (❤).
+
+The reason to call it thin layer is because pwoered by the fsharp inline, a lot of overhead will be removed and what it actually compiled is what you may write by using the raw api manually.
 
 There is a convention for using it:
 
@@ -80,7 +82,7 @@ app.MapGroup(
 ...
 ```
 
-## Fun.AspNetCore.Blazor example
+## Fun.AspNetCore.Blazor [![Nuget](https://img.shields.io/nuget/vpre/Fun.AspNetCore.Blazor)](https://www.nuget.org/packages/Fun.AspNetCore.Blazor) example
 
 ```fsharp
 ...
