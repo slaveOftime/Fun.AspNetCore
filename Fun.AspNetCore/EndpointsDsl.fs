@@ -2,6 +2,7 @@
 
 open System.Runtime.CompilerServices
 open Microsoft.AspNetCore.Routing
+open Fun.AspNetCore.Internal
 
 
 [<Extension>]

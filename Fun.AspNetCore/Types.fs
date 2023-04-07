@@ -1,4 +1,4 @@
-﻿namespace Fun.AspNetCore
+﻿namespace Fun.AspNetCore.Internal
 
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Routing

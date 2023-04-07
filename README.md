@@ -1,8 +1,46 @@
-﻿# Fun.AspNetCore
+﻿# Fun.AspNetCore [![Nuget](https://img.shields.io/nuget/vpre/Fun.AspNetCore)](https://www.nuget.org/packages/Fun.AspNetCore)
 
-This is a experimental project for provide a very thin layer on AspNetCore for fsharp developers who love CE syntax (❤).
+This is a experimental project for provide a very thin layer on AspNetCore minimal api for fsharp developers who love CE syntax (❤).
 
-## With **Fun.AspNetCore** you can build minimal apis like:
+The reason to call it thin layer is because pwoered by the fsharp inline, a lot of overhead will be removed and what it actually compiled is what you may write by using the raw api manually.
+
+There is a convention for using it:
+
+**endpoints** is a group of endpoint, it can contain nested **endpoints** or get/put/post/delete/patch endpoints etc.
+
+```fsharp
+endpoints "api" {
+    // the settings like authorization, goes first
+    
+    // nested endpoints
+    endpoints "user" {
+        ...
+    }
+
+    // single endpoint
+    get "hi" { ... }
+}
+```
+
+For a single endpoint it also follow similar pattern
+
+```fsharp
+get "hi" {
+    // the settings like authorization, goes first
+
+    // handle should put in the last
+    handle (fun (v1: T1) (v2: T2) ... -> ...)
+    // The function argumentS should not be tuples
+    // You can use function which is defined in other places, but it must be defined as Func<_, _>(fun (v1: T1) (v2: T2) ... -> ...).
+    // Like: let getUser = Func<int, User>(fun userId -> { Id = userId; Name = "foo" })
+    // The different with csharp minimal api is: you can not add attribute to the argument because of fsharp limitation.
+
+    // You can also yield IResult and NodeRenderFragment(for Fun.Blazor) without use handle, they are special
+}
+```
+
+
+## Fun.AspNetCore example
 
 ```fsharp
 ...
@@ -14,11 +52,8 @@ let app = builder.Build()
 
 app.MapGroup(
     endpoints "api" {
-        get "hi" {
-            cacheOutput
-            Results.Text "world"
-        }
-        // You can next endpoints
+        get "hi" { Results.Text "world" }
+        // You can nest endpoints
         endpoints "user" {
             get "{userId}" {
                 authorization
@@ -47,14 +82,14 @@ app.MapGroup(
 ...
 ```
 
-## With **Fun.AspNetCore.Blazor** you can build minimal apis with Fun.Blazor like:
+## Fun.AspNetCore.Blazor [![Nuget](https://img.shields.io/nuget/vpre/Fun.AspNetCore.Blazor)](https://www.nuget.org/packages/Fun.AspNetCore.Blazor) example
 
 ```fsharp
 ...
 let builder = WebApplication.CreateBuilder(Environment.GetCommandLineArgs())
 let services = builder.Services
 ...
-services.AddControllersWithViews()
+services.AddControllersWithViews() // Will register some service for writing dom into response
 ...
 let app = builder.Build()
 ...
