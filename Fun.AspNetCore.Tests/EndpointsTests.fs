@@ -1,5 +1,6 @@
 module Fun.AspNetCore.Tests.EndpointsTests
 
+open System
 open System.Text
 open System.Net
 open System.Net.Http
@@ -44,4 +45,10 @@ let ``Fun Blazor integration should work`` () = task {
 
     let! actual = client.GetStringAsync("/view/blog/1")
     Assert.Equal("""<div><h2>Blog 1</h2><p>Please give me feedback if you want.</p></div>""", actual)
+}
+
+[<Fact>]
+let ``responseCache should work`` () = task {
+    let! actual = client.GetAsync("/api/hi2")
+    Assert.Equal<string>([ $"max-age:{TimeSpan.FromHours(1).TotalSeconds}" ], actual.Headers.GetValues("Cache-Control"))
 }

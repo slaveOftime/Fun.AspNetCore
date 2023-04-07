@@ -187,6 +187,23 @@ type EndpointCEBuilder(methods: string list, pattern: string) =
         BuildEndpoint(fun route -> build.Invoke(route).CacheOutput(fun x -> configurePolicy x |> ignore))
 
 
+    [<CustomOperation "responseCache">]
+    member inline _.responseCache([<InlineIfLambda>] build: BuildEndpoint, time: TimeSpan) =
+        BuildEndpoint(fun route ->
+            build
+                .Invoke(route)
+                .AddEndpointFilter(
+                    { new IEndpointFilter with
+                        member _.InvokeAsync(ctx, next) =
+                            if ctx.HttpContext.Response.HasStarted then
+                                failwith "Cannot set headers when they are already sent to client"
+                            ctx.HttpContext.Response.Headers.CacheControl <- $"max-age:{time.TotalSeconds}"
+                            next.Invoke ctx
+                    }
+                )
+        )
+
+
     [<CustomOperation "handle">]
     member inline this.handle([<InlineIfLambda>] build: BuildEndpoint, handler: Func<'T, _>) =
         if typeof<'T> = typeof<unit> then
