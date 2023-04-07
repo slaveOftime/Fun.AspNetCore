@@ -1,6 +1,8 @@
 #r "nuget: Fun.Build"
 #r "nuget: NBomber"
 
+open System
+open System.Net.Http
 open Fun.Build
 open NBomber.FSharp
 open NBomber.Contracts

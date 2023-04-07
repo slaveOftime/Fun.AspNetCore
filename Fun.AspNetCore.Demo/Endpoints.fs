@@ -9,7 +9,8 @@ open Fun.AspNetCore
 
 let apis =
     endpoints "api" {
-        get "hi" {
+        get "hi" { Results.Text "world" }
+        get "hi1" {
             cacheOutput
             Results.Text "world"
         }
@@ -55,6 +56,7 @@ let view =
             div { $"{DateTime.Now}" }
         }
         get "blog-list" {
+            produces 200 "text/html"
             div {
                 class' "blog-list my-5"
                 childContent [
@@ -67,6 +69,7 @@ let view =
             }
         }
         get "blog/{blogId}" {
+            produces 200 "text/html"
             handle (fun (blogId: int) -> div {
                 h2 { $"Blog {blogId}" }
                 p { "Please give me feedback if you want." }
