@@ -97,11 +97,16 @@ let app = builder.Build()
 app.MapGroup(
     endpoints "view" {
         // Integrate with Fun.Blazor
+        enableFunBlazor
+
         get "time" {
+            // You can enable for a specific route
+            enableFunBlazor
             cacheOutput (fun b -> b.Expire(TimeSpan.FromSeconds 5))
             div { $"{DateTime.Now}" }
         }
         get "blog-list" {
+            produces 200 "text/html"
             div {
                 class' "blog-list my-5"
                 childContent [
@@ -114,13 +119,11 @@ app.MapGroup(
             }
         }
         get "blog/{blogId}" {
-            handle (fun (blogId: int) ->
-                div {
-                    h2 { $"Blog {blogId}" }
-                    p { "Please give me feedback if you want." }
-                }
-                |> Results.View
-            )
+            produces 200 "text/html"
+            handle (fun (blogId: int) -> div {
+                h2 { $"Blog {blogId}" }
+                p { "Please give me feedback if you want." }
+            })
         }
     }
 )
