@@ -2,7 +2,9 @@
 module Fun.AspNetCore.Extensions
 
 open System
+open System.Threading.Tasks
 open Microsoft.AspNetCore.Http
+open Microsoft.AspNetCore.Mvc.Rendering
 open Microsoft.AspNetCore.Builder
 open Microsoft.Extensions.DependencyInjection
 open Fun.Blazor
@@ -10,53 +12,50 @@ open Fun.Blazor
 
 type Results with
 
+    [<Obsolete("Please use enableFunBlazor with related CE")>]
     static member inline View(node: NodeRenderFragment) =
         { new IResult with
             member _.ExecuteAsync(ctx) = ctx.WriteFunDom(node)
         }
 
 
+type FunBlazorEndpointFilter(renderMode) =
+    interface IEndpointFilter with
+        member _.InvokeAsync(ctx, next) =
+            task {
+                match! next.Invoke(ctx) with
+                | :? NodeRenderFragment as node ->
+                    return
+                        { new IResult with
+                            member _.ExecuteAsync(ctx) = ctx.WriteFunDom(node, renderMode)
+                        }
+                        :> obj
+
+                | x -> return x
+            }
+            |> ValueTask<obj>
+
+
 type EndpointCEBuilder with
 
     member inline this.Yield([<InlineIfLambda>] node: NodeRenderFragment) =
-        BuildRoute(fun group -> group.MapMethods(this.Pattern, this.Methods, Func<_, _>(fun (ctx: HttpContext) -> ctx.WriteFunDom(node))))
+        BuildRoute(fun group -> group.MapMethods(this.Pattern, this.Methods, Func<_>(fun () -> node)))
 
 
+    [<CustomOperation "enableFunBlazor">]
+    member inline _.enableFunBlazor([<InlineIfLambda>] build: BuildEndpoint, ?renderMode) =
+        BuildEndpoint(fun routeBuilder ->
+            build
+                .Invoke(routeBuilder)
+                .Produces(200, "text/html")
+                .AddEndpointFilter(FunBlazorEndpointFilter(defaultArg renderMode RenderMode.Static))
+        )
 
-//[<CustomOperation "view">]
-//member inline this.view([<InlineIfLambda>] build: BuildEndpoint, handler: Func<'T, NodeRenderFragment>) =
-//    BuildRoute(fun group ->
-//        let route = group.MapMethods(this.Pattern, this.Methods, handler)
-//        route.Add(fun b -> b.Metadata.Add({ new IFunBlazorNodeMeta }))
-//        build.Invoke(route)
-//    )
 
-//[<CustomOperation "view">]
-//member inline this.view([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] makeView: _ * _ -> NodeRenderFragment) =
-//    this.Build(build, Func<_, _, _, _>(fun (ctx: HttpContext) x1 x2 -> ctx.WriteFunDom(makeView (x1, x2))))
+type EndpointsCEBuilder with
 
-//[<CustomOperation "view">]
-//member inline this.view([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] makeView: _ * _ * _ -> NodeRenderFragment) =
-//    this.Build(build, Func<_, _, _, _, _>(fun (ctx: HttpContext) x1 x2 x3 -> ctx.WriteFunDom(makeView (x1, x2, x3))))
-
-//[<CustomOperation "view">]
-//member inline this.view([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] makeView: _ * _ * _ * _ -> NodeRenderFragment) =
-//    this.Build(build, Func<_, _, _, _, _, _>(fun (ctx: HttpContext) x1 x2 x3 x4 -> ctx.WriteFunDom(makeView (x1, x2, x3, x4))))
-
-//[<CustomOperation "view">]
-//member inline this.view([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] makeView: _ * _ * _ * _ * _ -> NodeRenderFragment) =
-//    this.Build(build, Func<_, _, _, _, _, _, _>(fun (ctx: HttpContext) x1 x2 x3 x4 x5 -> ctx.WriteFunDom(makeView (x1, x2, x3, x4, x5))))
-
-//[<CustomOperation "view">]
-//member inline this.view([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] makeView: _ * _ * _ * _ * _ * _ -> NodeRenderFragment) =
-//    this.Build(
-//        build,
-//        Func<_, _, _, _, _, _, _, _>(fun (ctx: HttpContext) x1 x2 x3 x4 x5 x6 -> ctx.WriteFunDom(makeView (x1, x2, x3, x4, x5, x6)))
-//    )
-
-//[<CustomOperation "view">]
-//member inline this.view([<InlineIfLambda>] build: BuildEndpoint, [<InlineIfLambda>] makeView: _ * _ * _ * _ * _ * _ * _ -> NodeRenderFragment) =
-//    this.Build(
-//        build,
-//        Func<_, _, _, _, _, _, _, _, _>(fun (ctx: HttpContext) x1 x2 x3 x4 x5 x6 x7 -> ctx.WriteFunDom(makeView (x1, x2, x3, x4, x5, x6, x7)))
-//    )
+    [<CustomOperation "enableFunBlazor">]
+    member inline _.enableFunBlazor([<InlineIfLambda>] build: BuildEndpoints, ?renderMode) =
+        BuildEndpoints(fun routeGroupBuilder ->
+            build.Invoke(routeGroupBuilder).AddEndpointFilter(FunBlazorEndpointFilter(defaultArg renderMode RenderMode.Static))
+        )

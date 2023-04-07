@@ -13,6 +13,10 @@ let apis =
             cacheOutput
             Results.Text "world"
         }
+        get "hi2" {
+            responseCache (TimeSpan.FromHours 1)
+            Results.Text "world"
+        }
         endpoints "user" {
             get "{userId}" {
                 authorization
@@ -42,7 +46,11 @@ let apis =
 let view =
     endpoints "view" {
         // Integrate with Fun.Blazor
+        enableFunBlazor
+
         get "time" {
+            // You can enable for a specific route
+            enableFunBlazor
             cacheOutput (fun b -> b.Expire(TimeSpan.FromSeconds 5))
             div { $"{DateTime.Now}" }
         }
@@ -59,12 +67,9 @@ let view =
             }
         }
         get "blog/{blogId}" {
-            handle (fun (blogId: int) ->
-                div {
-                    h2 { $"Blog {blogId}" }
-                    p { "Please give me feedback if you want." }
-                }
-                |> Results.View
-            )
+            handle (fun (blogId: int) -> div {
+                h2 { $"Blog {blogId}" }
+                p { "Please give me feedback if you want." }
+            })
         }
     }
