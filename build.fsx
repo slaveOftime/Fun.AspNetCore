@@ -1,8 +1,5 @@
-#r "nuget: Fun.Build, 0.3.2"
-#r "nuget: Fake.IO.FileSystem, 5.23.0"
+#r "nuget: Fun.Build"
 
-open Fake.IO
-open Fake.IO.Globbing.Operators
 open Fun.Build
 
 
@@ -32,7 +29,6 @@ let testStage = stage "Run unit tests" { run "dotnet test" }
 
 pipeline "deploy" {
     description "Build and deploy to nuget"
-    noPrefixForStep
     envCheckStage
     lintStage
     testStage
@@ -59,7 +55,6 @@ pipeline "deploy" {
 
 pipeline "test" {
     description "Format code and run tests"
-    noPrefixForStep
     envCheckStage
     lintStage
     testStage
