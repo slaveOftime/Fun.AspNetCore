@@ -1,4 +1,4 @@
-#r "nuget: Fun.Build, 0.5.0"
+#r "nuget: Fun.Build, 0.5.1"
 #r "nuget: NBomber, 5.2.1"
 
 open System
