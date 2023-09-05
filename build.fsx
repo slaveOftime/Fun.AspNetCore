@@ -1,5 +1,5 @@
-#r "nuget: Fun.Build"
-#r "nuget: NBomber"
+#r "nuget: Fun.Build, 0.5.0"
+#r "nuget: NBomber, 5.2.1"
 
 open System
 open System.Net.Http
@@ -7,31 +7,33 @@ open Fun.Build
 open NBomber.FSharp
 open NBomber.Contracts
 
+let options = {|
+    GithubAction = EnvArg.Create("GITHUB_ACTION", description = "Run only in in github action container")
+    NugetAPIKey = EnvArg.Create("NUGET_API_KEY", description = "Nuget api key")
+|}
 
-let envCheckStage =
+
+let stage_checkEnv =
     stage "Check environment" {
-        paralle
-        run "dotnet --version"
-        run "dotnet --list-sdks"
         run "dotnet tool restore"
-        run (fun ctx -> printfn $"""GITHUB_ACTION: {ctx.GetEnvVar "GITHUB_ACTION"}""")
+        run (fun ctx -> printfn $"""GITHUB_ACTION: {ctx.GetEnvVar options.GithubAction.Name}""")
     }
 
-let lintStage =
+let stage_lint =
     stage "Lint" {
         stage "Format" {
-            whenNot { envVar "GITHUB_ACTION" }
+            whenNot { envVar options.GithubAction }
             run "dotnet fantomas . -r"
         }
         stage "Check" {
-            whenEnvVar "GITHUB_ACTION"
+            whenEnvVar options.GithubAction
             run "dotnet fantomas . -r --check"
         }
     }
 
-let testStage = stage "Run unit tests" { run "dotnet test" }
+let stage_test = stage "Run unit tests" { run "dotnet test" }
 
-let benchmarkStage name (url: string) =
+let stage_benchmark name (url: string) =
     stage name {
         paralle
         stage "server" {
@@ -55,6 +57,7 @@ let benchmarkStage name (url: string) =
                 |> NBomberRunner.registerScenario
                 |> NBomberRunner.run
 
+            // so we can stop the server and end the stage
             ctx.SoftCancelStage()
 
             return result |> Result.map ignore
@@ -64,24 +67,19 @@ let benchmarkStage name (url: string) =
 
 pipeline "deploy" {
     description "Build and deploy to nuget"
-    envCheckStage
-    lintStage
-    testStage
+    stage_checkEnv
+    stage_lint
+    stage_test
     stage "Build packages" {
         run "dotnet pack -c Release Fun.AspNetCore/Fun.AspNetCore.fsproj -o ."
         run "dotnet pack -c Release Fun.AspNetCore.Blazor/Fun.AspNetCore.Blazor.fsproj -o ."
     }
     stage "Publish packages to nuget" {
         failIfIgnored
-        whenAll {
-            branch "master"
-            whenAny {
-                envVar "NUGET_API_KEY"
-                cmdArg "NUGET_API_KEY"
-            }
-        }
+        whenBranch "master"
+        whenEnvVar options.NugetAPIKey
         run (fun ctx ->
-            let key = ctx.GetCmdArgOrEnvVar "NUGET_API_KEY"
+            let key = ctx.GetCmdArgOrEnvVar options.NugetAPIKey.Name
             ctx.RunSensitiveCommand $"""dotnet nuget push *.nupkg -s https://api.nuget.org/v3/index.json --skip-duplicate -k {key}"""
         )
     }
@@ -90,20 +88,19 @@ pipeline "deploy" {
 
 pipeline "test" {
     description "Format code and run tests"
-    envCheckStage
-    lintStage
-    testStage
+    stage_checkEnv
+    stage_lint
+    stage_test
     runIfOnlySpecified
 }
 
 pipeline "benchmark" {
     description "Compare normal minimal apis with apis build by Fun.AspNetCore"
-    noPrefixForStep
     workingDir "Fun.AspNetCore.Demo"
     stage "prepare" { run "dotnet build -c Release" }
-    benchmarkStage "NormalMinimal" "https://localhost:51833/normal/hi"
+    stage_benchmark "NormalMinimal" "https://localhost:51833/normal/hi"
     stage "pause" { run (Async.Sleep 10_000) }
-    benchmarkStage "Fun.AspNetCore" "https://localhost:51833/api/hi"
+    stage_benchmark "Fun.AspNetCore" "https://localhost:51833/api/hi"
     runIfOnlySpecified
 }
 
